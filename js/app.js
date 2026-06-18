@@ -271,9 +271,9 @@ function removeInvItem(i) {
 
 function genInvoice() {
   const client = document.getElementById("invClient").value;
-  const type   = document.getElementById("invType").value; // Asumo que "type" es "entrada" o "salida" (o "compra"/"venta")
+  const type   = document.getElementById("invType").value;
 
-  // 1. Sincronizar los valores actuales de los inputs al estado del array
+  // Sincronizar los valores actuales de los inputs en memoria
   document.querySelectorAll("[data-inv-kg]").forEach((el) => {
     state.invItems[+el.dataset.invKg].kg = parseFloat(el.value) || 0;
   });
@@ -281,71 +281,88 @@ function genInvoice() {
     state.invItems[+el.dataset.invPrice].price = parseFloat(el.value) || 0;
   });
 
-  // Validar que haya ítems válidos antes de procesar stock
   const validItems = state.invItems.filter(item => item.kg > 0);
   if (validItems.length === 0) {
     alert("Agrega al menos un material con peso mayor a 0.");
     return;
   }
 
-  /* ══════════════════════════════════════════════════════════
-     NUEVO: VALIDACIÓN Y ACTUALIZACIÓN DE STOCK
-     ══════════════════════════════════════════════════════════ */
+  // Renderizar la factura en el contenedor de vista previa
+  const html = buildInvoiceHTML({ client, type, items: state.invItems, prices: state.prices });
+  if (!html) {
+    alert("Error al construir el diseño de la factura.");
+    return;
+  }
+
+  document.getElementById("invContent").innerHTML = html;
+  document.getElementById("invPreviewCard").style.display = "block";
   
-  // Si tu select 'invType' usa valores como "venta" o "salida", ajusta este condicional:
+  // Agregamos un botón dinámico o habilitamos uno para "Confirmar y Registrar" en el inventario
+  
+}
+
+function confirmAndRegisterInvoice() {
+  const client = document.getElementById("invClient").value || "Cliente General";
+  const type   = document.getElementById("invType").value.trim().toLowerCase(); 
+
+  const validItems = state.invItems.filter(item => item.kg > 0);
+  if (validItems.length === 0) return false;
+
+  // Determinar con certeza si es una salida de material (Venta)
+  // Ajusta "venta" o "salida" según los <option value="..."> exactos de tu HTML
   const isSalida = (type === "salida" || type === "venta");
 
-  // Validar primero si hay stock suficiente para todos los productos (Evita dejar saldos negativos a mitad de proceso)
+  // Validar primero si hay stock suficiente en caso de ser una salida
   if (isSalida) {
     for (const item of validItems) {
-      const currentStock = state.inventory[item.mat] || 0;
+      const currentStock = parseFloat(state.inventory[item.mat]) || 0;
       if (item.kg > currentStock) {
         const matName = getMaterial(item.mat)?.name || item.mat;
         alert(`Stock insuficiente para ${matName}. Disponible: ${currentStock} kg. Requerido: ${item.kg} kg.`);
-        return; // Detiene la creación de la factura si falta stock
+        return false; // Cancela la operación
       }
     }
   }
 
-  // Actualizar el inventario en memoria y registrar movimientos individuales
+  // Ahora que sabemos que todo está bien, aplicamos la matemática correctamente
   validItems.forEach((item) => {
+    const currentStock = parseFloat(state.inventory[item.mat]) || 0;
+    const kgOperacion = parseFloat(item.kg);
+
     if (isSalida) {
-      state.inventory[item.mat] = (state.inventory[item.mat] || 0) - item.kg;
+      // RESTAR MATERIAL (Venta / Salida)
+      state.inventory[item.mat] = currentStock - kgOperacion;
     } else {
-      // Si es una compra/entrada
-      state.inventory[item.mat] = (state.inventory[item.mat] || 0) + item.kg;
+      // SUMAR MATERIAL (Compra / Entrada)
+      state.inventory[item.mat] = currentStock + kgOperacion;
     }
 
-    // Opcional: Si quieres que además se refleje en la pestaña "Historial de Movimientos"
+    // Registrar en el historial de movimientos de la app
     const movement = {
-      id:    Date.now() + Math.random(), // Evitar colisión de IDs en bucles rápidos
+      id:    Date.now() + Math.random(),
       type:  isSalida ? "salida" : "entrada",
       mat:   item.mat,
-      kg:    item.kg,
-      price: item.price,
-      total: item.kg * item.price,
-      note:  `Factura a: ${client || "Cliente General"}`,
+      kg:    kgOperacion,
+      price: parseFloat(item.price) || 0,
+      total: kgOperacion * (parseFloat(item.price) || 0),
+      note:  `Factura (${type}): ${client}`,
       date:  todayStr(),
       time:  new Date().toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" }),
     };
     state.movements.push(movement);
   });
 
-  // 2. Guardar los cambios en el LocalStorage (Persistencia)
+  // Guardar cambios en LocalStorage
   saveInventory(state.inventory);
   if (typeof saveMovements === "function") {
-    saveMovements(state.movements); // Guarda el historial si la función existe
+    saveMovements(state.movements);
   }
 
-  // 3. Renderizar la factura en pantalla
-  const html = buildInvoiceHTML({ client, type, items: state.invItems, prices: state.prices });
-  document.getElementById("invContent").innerHTML = html;
-  document.getElementById("invPreviewCard").style.display = "block";
-
-  // 4. Refrescar las interfaces de usuario (Tablas, KPI cards, etc.)
+  // Refrescar las tablas y KPIs de la pestaña Inventario
   refreshInventoryView();
-  showAlert("Factura procesada e inventario actualizado con éxito.", "success");
+  return true;
 }
+
 
 function clearInvoice() {
   state.invItems = [{ mat: MATERIALS[0].id, kg: 0, price: 0 }];
@@ -355,6 +372,13 @@ function clearInvoice() {
 }
 
 function printInvoice() {
+  // 1. Intentar procesar y descontar del inventario primero
+  const procesadoExitoso = confirmAndRegisterInvoice();
+  
+  // Si falló la validación (ej. no había stock), detenemos la impresión
+  if (!procesadoExitoso) return;
+
+  // 2. Si el inventario se actualizó correctamente, procedemos a imprimir el tiquete
   const content = document.getElementById("invContent").innerHTML;
   const w = window.open("", "_blank");
   
@@ -364,63 +388,22 @@ function printInvoice() {
     <head>
       <title>Tiquete MetalStock</title>
       <style>
-        /* Forzar dimensiones físicas del papel de 58mm */
-        @page { 
-          margin: 0; 
-          size: 58mm auto; /* Define explícitamente el ancho del rollo */
-        }
-        
-        * {
-          box-sizing: border-box;
-          margin: 0;
-          padding: 0;
-        }
-
+        @page { margin: 0; size: 58mm auto; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body { 
           font-family: 'Courier New', Courier, monospace; 
           font-size: 12px; 
           line-height: 1.2;
-          padding: 2mm; /* Pequeño margen para que el texto no toque el borde físico */
-          width: 100%;  /* Que ocupe todo el ancho disponible */
+          padding: 2mm; 
+          width: 100%;  
           color: #000; 
           background-color: #fff;
         }
-
-        h3 { 
-          text-align: center; 
-          font-size: 13px; 
-          font-weight: bold;
-          margin-bottom: 5px;
-          text-transform: uppercase;
-        }
-
-        /* Contenedor dinámico basado en flexbox */
-        .inv-row { 
-          display: flex; 
-          justify-content: space-between; 
-          align-items: flex-start;
-          width: 100%;
-          margin: 2px 0;
-        }
-
-        .sep { 
-          border-top: 1px dashed #000; 
-          margin: 5px 0; 
-          width: 100%;
-          display: block;
-        }
-
-        .inv-footer { 
-          text-align: center; 
-          font-size: 10px; 
-          margin-top: 8px;
-        }
-
-        /* Espacio físico al final del papel para avance de cuchilla */
-        .cut-space {
-          height: 15mm; 
-          display: block;
-        }
+        h3 { text-align: center; font-size: 13px; font-weight: bold; margin-bottom: 5px; text-transform: uppercase; }
+        .inv-row { display: flex; justify-content: space-between; align-items: flex-start; width: 100%; margin: 2px 0; }
+        .sep { border-top: 1px dashed #000; margin: 5px 0; width: 100%; display: block; }
+        .inv-footer { text-align: center; font-size: 10px; margin-top: 8px; }
+        .cut-space { height: 15mm; display: block; }
       </style>
     </head>
     <body>
@@ -434,7 +417,9 @@ function printInvoice() {
   
   setTimeout(() => {
     w.print();
-    w.close(); 
+    w.close();
+    // Limpiar la sección de la factura para la siguiente venta
+    clearInvoice(); 
   }, 250);
 }
 
