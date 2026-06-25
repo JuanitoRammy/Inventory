@@ -77,16 +77,6 @@ function renderStats(inventory, prices, movements) {
 
   document.getElementById("statsGrid").innerHTML = `
     <div class="stat-card">
-      <div class="stat-label">Total bodega</div>
-      <div class="stat-val">${fmtQty(totalKg, "kg")}</div>
-      <div class="stat-sub">peso total (kg)</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Valor estimado</div>
-      <div class="stat-val" style="font-size:15px;">${fmtCOP(totalVal)}</div>
-      <div class="stat-sub">precios de hoy</div>
-    </div>
-    <div class="stat-card">
       <div class="stat-label">Materiales</div>
       <div class="stat-val">${active}</div>
       <div class="stat-sub">con stock</div>
