@@ -274,7 +274,13 @@ function renderInvoiceItems(items, prices) {
 
 /**
  * Genera el HTML de la factura optimizado estrictamente para tiqueteras de 58mm (384dots/line).
- * CORRECCIÓN: Letra en negro puro (#000) y peso mejorado para eliminar el efecto grisáceo/borroso.
+ * OPTIMIZACIÓN: Remoción de selectores intrusivos para compatibilidad móvil total y color sólido #000.
+ * @param {{ client:string, type:string, items:object[], prices:Record<string,number> }} opts
+ * @returns {string}
+ */
+/**
+ * Genera el HTML de la factura optimizado estrictamente para tiqueteras de 58mm (384dots/line).
+ * AJUSTE: Centrado físico mediante padding interno controlado para evitar errores en móviles.
  * @param {{ client:string, type:string, items:object[], prices:Record<string,number> }} opts
  * @returns {string}
  */
@@ -305,51 +311,41 @@ function buildInvoiceHTML({ client, type, items, prices }) {
     <div style="font-weight: bold; font-size: 12px; margin-top: 4px; text-transform: uppercase; color: #000 !important;">
       ${r.matName}
     </div>
-    <div style="display: flex; justify-content: space-between; font-size: 11px; font-family: monospace; font-weight: 600; padding-left: 2px; color: #000 !important;">
+    <div style="display: flex; justify-content: space-between; font-size: 11px; font-family: monospace; font-weight: bold; padding-left: 2px; color: #000 !important;">
       <span>${r.kg.toFixed(1)}${r.unit} x ${Math.round(r.unitPrice)}</span>
       <span>${fmtCOP(r.total)}</span>
     </div>`).join("");
 
   return `
     <style>
-      /* Configuración del tamaño del rollo */
+      /* Configuración nativa del rollo de 58mm */
       @page {
         size: 58mm auto;
         margin: 0 !important;
       }
       
-      @media print {
-        /* Oculta los elementos de la interfaz del sistema */
-        nav, header, sidebar, .btn, .no-print, table, form, .stats-grid, #statsGrid, .card {
-          display: none !important;
-        }
-        
-        /* Forzar que el cuerpo de la página no tenga márgenes molestos */
-        body {
-          margin: 0 !important;
-          padding: 0 !important;
-          background: #fff !important;
-        }
-      }
-      
-      /* Contenedor principal del tiquete con ancho seguro para 384 puntos */
+      /* Contenedor principal del tiquete */
       .ticket-body {
         width: 48mm !important;
         max-width: 48mm !important;
         box-sizing: border-box;
-        padding: 0 1mm;
+        
+        /* ── EL TRUCO DEL CENTRADO AQUÍ ── */
+        /* Si notas que aún le falta ir a la derecha, sube el 3mm a 4mm o 5mm */
+        padding: 0 1mm 0 3mm !important; 
+        margin: 0 !important;
+        
         font-family: 'Courier New', Courier, monospace;
-        color: #000 !important; /* Negro absoluto */
+        color: #000 !important;
         line-height: 1.2;
         background: #fff;
-        margin: 5mm;
       }
       .t-row {
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
         font-size: 11px;
-        font-weight: 600; /* Letra más firme para que queme bien */
+        font-weight: bold;
         margin-bottom: 3px;
         color: #000 !important;
       }

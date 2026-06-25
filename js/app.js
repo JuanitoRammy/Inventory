@@ -10,11 +10,11 @@
 
 let state = {
   prices:     {},        // {[matId]: number}
-  prevPrices:{},        // {[matId]: number}
-  inventory: {},        // {[matId]: number}
-  movements: [],        // Movement[]
-  currentMT: "entrada", // "entrada" | "salida"
-  invItems:  [],        // ítems de la factura en construcción
+  prevPrices: {},        // {[matId]: number}
+  inventory:  {},        // {[matId]: number}
+  movements:  [],        // Movement[]
+  currentMT:  "entrada", // "entrada" | "salida"
+  invItems:   [],        // ítems de la factura en construcción
 };
 
 /* ══════════════════════════════════════════════════════════
@@ -316,7 +316,7 @@ function confirmAndRegisterInvoice() {
   const isSalida = (typeLower === "salida" || typeLower === "venta");
 
   /* ══════════════════════════════════════════════════════════
-       CORRECCIÓN: AGREGACIÓN DE CANTIDADES POR MATERIAL
+        CORRECCIÓN: AGREGACIÓN DE CANTIDADES POR MATERIAL
      ══════════════════════════════════════════════════════════ */
   if (isSalida) {
     const totalsByMaterial = {};
@@ -380,105 +380,51 @@ function clearInvoice() {
   renderInvoiceItems(state.invItems, state.prices);
 }
 
+/**
+ * MÈTODO DE IMPRESIÓN CORREGIDO:
+ * Abre un canal de aislamiento limpio compatible con PC y navegadores de teléfono celular.
+ */
 function printInvoice() {
   const procesadoExitoso = confirmAndRegisterInvoice();
   if (!procesadoExitoso) return;
 
-  const content = document.getElementById("invContent").innerHTML;
-  const w = window.open("", "_blank");
+  const client = document.getElementById("invClient").value;
+  const type   = document.getElementById("invType").value;
+
+  // Generamos el HTML exacto de ui.js con negros puros y dimensiones de 48mm reales
+  const ticketHTML = buildInvoiceHTML({ client, type, items: state.invItems, prices: state.prices });
+  if (!ticketHTML) return;
+
+  // Abrimos una ventana emergente limpia y aislada de la app 
+  const w = window.open("", "_blank", "width=300,height=600");
   
+  if (!w) {
+    alert("Por favor, permite las ventanas emergentes (pop-ups) para poder imprimir desde el celular.");
+    return;
+  }
+
   w.document.write(`
     <!DOCTYPE html>
     <html>
     <head>
-      <title>Tiquete MetalStock</title>
-      <style>
-        /* Forzar tamaño de página física y eliminar márgenes del driver del sistema */
-        @page { 
-          size: 58mm auto; 
-          margin: 0mm; 
-        }
-        
-        /* Reset total e inyección de caja fija para evitar cortes a la derecha */
-        * { 
-          box-sizing: border-box; 
-          margin: 0; 
-          padding: 0; 
-        }
-        
-        html, body {
-          width: 58mm;
-          max-width: 58mm;
-          background-color: #fff;
-          color: #000;
-          font-family: 'Courier New', Courier, monospace; 
-          font-size: 11px; /* Bajamos un punto para garantizar legibilidad en 58mm */
-          line-height: 1.2;
-        }
-
-        /* Contenedor contenedor estricto para que NADA flote o se desborde a la derecha */
-        .ticket-wrapper {
-          width: 100%;
-          padding: 2mm 3mm 2mm 1mm; /* Margen derecho sutil para que no toque el borde del papel */
-          overflow: hidden;
-          display: block;
-        }
-        
-        h3 { 
-          text-align: center; 
-          font-size: 11px; 
-          font-weight: bold; 
-          margin-bottom: 2px; 
-          text-transform: uppercase; 
-          width: 100%;
-        }
-        
-        /* Flexbox seguro para chatas térmicas */
-        .inv-row { 
-          display: flex; 
-          justify-content: space-between; 
-          align-items: flex-start; 
-          width: 100%; 
-          margin: 2px 0;
-          word-break: break-all;
-        }
-        
-        .sep { 
-          border-top: 1px dashed #000; 
-          margin: 4px 0; 
-          width: 100%; 
-          display: block; 
-        }
-        
-        .inv-footer { 
-          text-align: center; 
-          font-size: 9px; 
-          margin-top: 6px; 
-          width: 100%;
-        }
-        
-        .cut-space { 
-          height: 12mm; 
-          display: block; 
-        }
-      </style>
+      <title>Tiquete Impresion</title>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
     </head>
-    <body>
-      <div class="ticket-wrapper">
-        ${content}
-      </div>
-      <div class="cut-space"></div>
+    <body style="margin: 0; padding: 0; background: #fff;">
+      ${ticketHTML}
+      <div style="height: 10mm;"></div> <script>
+        window.onload = function() {
+          window.print();
+          setTimeout(() => { w.close(); }, 500);
+        };
+      <\/script>
     </body>
     </html>
   `);
   
   w.document.close();
-  
-  setTimeout(() => {
-    w.print();
-    w.close();
-    clearInvoice(); 
-  }, 250);
+  clearInvoice();
 }
 
 /* ══════════════════════════════════════════════════════════
