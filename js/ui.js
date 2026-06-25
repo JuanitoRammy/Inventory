@@ -57,7 +57,7 @@ function renderDateBadge() {
 
 /**
  * Renderiza el bloque de resumen.
- * CORRECCIÓN: Se restauran únicamente los contadores de materiales y movimientos diarios.
+ * Mantiene únicamente los contadores de materiales activos y movimientos diarios.
  * @param {Record<string,number>} inventory
  * @param {Record<string,number>} prices
  * @param {import('./storage').Movement[]} movements
@@ -273,6 +273,8 @@ function renderInvoiceItems(items, prices) {
 }
 
 /**
+ * Genera el HTML de la factura optimizado estrictamente para tiqueteras de 58mm (384dots/line).
+ * CORRECCIÓN: Letra en negro puro (#000) y peso mejorado para eliminar el efecto grisáceo/borroso.
  * @param {{ client:string, type:string, items:object[], prices:Record<string,number> }} opts
  * @returns {string}
  */
@@ -300,39 +302,101 @@ function buildInvoiceHTML({ client, type, items, prices }) {
   const grand = rows.reduce((a, r) => a + r.total, 0);
   
   const lines = rows.map((r) => `
-    <div class="inv-row" style="font-weight: bold; word-break: break-all;">
-      <span>${r.matName}</span>
+    <div style="font-weight: bold; font-size: 12px; margin-top: 4px; text-transform: uppercase; color: #000 !important;">
+      ${r.matName}
     </div>
-    <div class="inv-row" style="font-size: 10px;">
-      <span>&nbsp;&nbsp;${r.kg.toFixed(1)} ${r.unit} × ${fmtCOP(r.unitPrice)}/${r.unit}</span>
-      <span style="font-family: monospace;">${fmtCOP(r.total)}</span>
+    <div style="display: flex; justify-content: space-between; font-size: 11px; font-family: monospace; font-weight: 600; padding-left: 2px; color: #000 !important;">
+      <span>${r.kg.toFixed(1)}${r.unit} x ${Math.round(r.unitPrice)}</span>
+      <span>${fmtCOP(r.total)}</span>
     </div>`).join("");
 
   return `
-    <h3 style="text-align: center; font-size: 12px; font-weight: bold; margin: 0 0 2px 0; text-transform: uppercase; letter-spacing: -0.3px;">
-      Factura
-    </h3>
-    <div style="text-align: center; font-size: 10px; color: #000; margin-bottom: 4px; font-weight: bold;">
-      CHATARRERÍA
-    </div>
-    <div class="sep"></div>
-    <div class="inv-row">
-      <span>No. ${num}</span>
-      <span style="font-size: 10px;">${now.toLocaleDateString("es-CO")} ${now.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}</span>
-    </div>
-    <div class="inv-row" style="margin-bottom: 2px;">
-      <span>${type === "COMPRA" ? "Prov" : "Client"}:</span>
-      <span style="max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${client || "Sin nombre"}</span>
-    </div>
-    <div class="sep"></div>
-    ${lines}
-    <div class="sep"></div>
-    <div class="inv-row" style="font-weight:bold; font-size:13px; margin-top: 4px;">
-      <span>TOTAL</span>
-      <span style="font-size:14px;">${fmtCOP(grand)}</span>
-    </div>
-    <div class="sep"></div>
-    <div class="inv-footer">Barranquilla — Gracias por su negocio</div>`;
+    <style>
+      /* Configuración del tamaño del rollo */
+      @page {
+        size: 58mm auto;
+        margin: 0 !important;
+      }
+      
+      @media print {
+        /* Oculta los elementos de la interfaz del sistema */
+        nav, header, sidebar, .btn, .no-print, table, form, .stats-grid, #statsGrid, .card {
+          display: none !important;
+        }
+        
+        /* Forzar que el cuerpo de la página no tenga márgenes molestos */
+        body {
+          margin: 0 !important;
+          padding: 0 !important;
+          background: #fff !important;
+        }
+      }
+      
+      /* Contenedor principal del tiquete con ancho seguro para 384 puntos */
+      .ticket-body {
+        width: 48mm !important;
+        max-width: 48mm !important;
+        box-sizing: border-box;
+        padding: 0 1mm;
+        font-family: 'Courier New', Courier, monospace;
+        color: #000 !important; /* Negro absoluto */
+        line-height: 1.2;
+        background: #fff;
+      }
+      .t-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        font-size: 11px;
+        font-weight: 600; /* Letra más firme para que queme bien */
+        margin-bottom: 3px;
+        color: #000 !important;
+      }
+      .t-sep {
+        border-bottom: 1px dashed #000 !important;
+        margin: 5px 0;
+        width: 100%;
+      }
+    </style>
+
+    <div class="ticket-body">
+      <h3 style="text-align: center; font-size: 13px; font-weight: bold; margin: 0 0 1px 0; text-transform: uppercase; color: #000 !important;">
+        CHATARRERÍA
+      </h3>
+      <div style="text-align: center; font-size: 11px; font-weight: bold; margin-bottom: 5px; color: #000 !important;">
+        TIQUETE DE ${type === "COMPRA" ? "COMPRA" : "VENTA"}
+      </div>
+      
+      <div class="t-sep"></div>
+      
+      <div class="t-row">
+        <span>No. ${num}</span>
+        <span>${now.toLocaleDateString("es-CO")}</span>
+      </div>
+      <div class="t-row">
+        <span>${type === "COMPRA" ? "Prov" : "Client"}:</span>
+        <span style="max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: bold;">
+          ${client || "Sin nombre"}
+        </span>
+      </div>
+      
+      <div class="t-sep"></div>
+      
+      ${lines}
+      
+      <div class="t-sep"></div>
+      
+      <div class="t-row" style="font-weight: bold; font-size: 13px; margin-top: 4px; color: #000 !important;">
+        <span>TOTAL</span>
+        <span>${fmtCOP(grand)}</span>
+      </div>
+      
+      <div class="t-sep"></div>
+      
+      <div style="text-align: center; font-size: 10px; font-weight: bold; margin-top: 5px; text-transform: uppercase; color: #000 !important; line-height: 1.3;">
+        Barranquilla<br>Gracias por su negocio
+      </div>
+    </div>`;
 }
 
 /* ── Alert ───────────────────────────────────────────────── */
