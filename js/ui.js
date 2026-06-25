@@ -313,7 +313,6 @@ function buildInvoiceHTML({ client, type, items, prices }) {
 
   const grand = rows.reduce((a, r) => a + r.total, 0);
   
-  // Mapeo de líneas optimizado con clases CSS inline seguras para la tiquetera
   const lines = rows.map((r) => `
     <div class="inv-row" style="font-weight: bold; word-break: break-all;">
       <span>${r.matName}</span>
@@ -323,8 +322,14 @@ function buildInvoiceHTML({ client, type, items, prices }) {
       <span style="font-family: monospace;">${fmtCOP(r.total)}</span>
     </div>`).join("");
 
+  // CORRECCIÓN: Encabezado compacto en dos niveles para evitar que se corte en los 58mm
   return `
-    <h3>CHATARRERÍA — TIQUETE DE ${type}</h3>
+    <h3 style="text-align: center; font-size: 12px; font-weight: bold; margin: 0 0 2px 0; text-transform: uppercase; letter-spacing: -0.3px;">
+      TIQUETE DE ${type}
+    </h3>
+    <div style="text-align: center; font-size: 10px; color: #000; margin-bottom: 4px; font-weight: bold;">
+      CHATARRERÍA
+    </div>
     <div class="sep"></div>
     <div class="inv-row">
       <span>No. ${num}</span>
@@ -332,7 +337,7 @@ function buildInvoiceHTML({ client, type, items, prices }) {
     </div>
     <div class="inv-row" style="margin-bottom: 2px;">
       <span>${type === "COMPRA" ? "Prov" : "Client"}:</span>
-      <span style="max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${client || "Sin nombre"}</span>
+      <span style="max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${client || "Sin nombre"}</span>
     </div>
     <div class="sep"></div>
     ${lines}

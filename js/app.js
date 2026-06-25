@@ -9,7 +9,7 @@
    ══════════════════════════════════════════════════════════ */
 
 let state = {
-  prices:    {},        // {[matId]: number}
+  prices:     {},        // {[matId]: number}
   prevPrices:{},        // {[matId]: number}
   inventory: {},        // {[matId]: number}
   movements: [],        // Movement[]
@@ -22,6 +22,13 @@ let state = {
    ══════════════════════════════════════════════════════════ */
 
 function init() {
+  /* ══════════════════════════════════════════════════════════
+     ORDENAR MATERIALES ALFABÉTICAMENTE AL ARRANQUE
+     ══════════════════════════════════════════════════════════ */
+  if (Array.isArray(MATERIALS)) {
+    MATERIALS.sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
+  }
+
   state.prices     = loadPrices();
   state.inventory  = loadInventory();
   state.movements  = loadMovements();
@@ -287,7 +294,7 @@ function genInvoice() {
     return;
   }
 
-  // Renderizar la factura en el contenedor de vista previa
+  // Ejecutamos la función que está guardada limpiamente en ui.js
   const html = buildInvoiceHTML({ client, type, items: state.invItems, prices: state.prices });
   if (!html) {
     alert("Error al construir el diseño de la factura.");
@@ -296,50 +303,55 @@ function genInvoice() {
 
   document.getElementById("invContent").innerHTML = html;
   document.getElementById("invPreviewCard").style.display = "block";
-  
-  // Agregamos un botón dinámico o habilitamos uno para "Confirmar y Registrar" en el inventario
-  
 }
 
 function confirmAndRegisterInvoice() {
   const client = document.getElementById("invClient").value || "Cliente General";
-  const type   = document.getElementById("invType").value.trim().toLowerCase(); 
-
+  const type = document.getElementById("invType").value.trim(); 
+  
   const validItems = state.invItems.filter(item => item.kg > 0);
   if (validItems.length === 0) return false;
 
-  // Determinar con certeza si es una salida de material (Venta)
-  // Ajusta "venta" o "salida" según los <option value="..."> exactos de tu HTML
-  const isSalida = (type === "salida" || type === "venta");
+  const typeLower = type.toLowerCase();
+  const isSalida = (typeLower === "salida" || typeLower === "venta");
 
-  // Validar primero si hay stock suficiente en caso de ser una salida
+  /* ══════════════════════════════════════════════════════════
+       CORRECCIÓN: AGREGACIÓN DE CANTIDADES POR MATERIAL
+     ══════════════════════════════════════════════════════════ */
   if (isSalida) {
-    for (const item of validItems) {
-      const currentStock = parseFloat(state.inventory[item.mat]) || 0;
-      if (item.kg > currentStock) {
-        const matName = getMaterial(item.mat)?.name || item.mat;
-        alert(`Stock insuficiente para ${matName}. Disponible: ${currentStock} kg. Requerido: ${item.kg} kg.`);
-        return false; // Cancela la operación
+    const totalsByMaterial = {};
+    
+    validItems.forEach((item) => {
+      if (!totalsByMaterial[item.mat]) totalsByMaterial[item.mat] = 0;
+      totalsByMaterial[item.mat] += parseFloat(item.kg);
+    });
+
+    for (const matId in totalsByMaterial) {
+      const currentStock = parseFloat(state.inventory[matId]) || 0;
+      const totalRequested = totalsByMaterial[matId];
+
+      if (totalRequested > currentStock) {
+        const matName = getMaterial(matId)?.name || matId;
+        alert(`Stock insuficiente para ${matName}.\nDisponible total: ${currentStock} kg.\nSolicitado en factura: ${totalRequested} kg.`);
+        return false;
       }
     }
   }
 
-  // Ahora que sabemos que todo está bien, aplicamos la matemática correctamente
+  // Aplicar la matemática al inventario
   validItems.forEach((item) => {
     const currentStock = parseFloat(state.inventory[item.mat]) || 0;
     const kgOperacion = parseFloat(item.kg);
 
     if (isSalida) {
-      // RESTAR MATERIAL (Venta / Salida)
       state.inventory[item.mat] = currentStock - kgOperacion;
     } else {
-      // SUMAR MATERIAL (Compra / Entrada)
       state.inventory[item.mat] = currentStock + kgOperacion;
     }
 
-    // Registrar en el historial de movimientos de la app
+    // Registrar en el historial
     const movement = {
-      id:    Date.now() + Math.random(),
+      id:     Date.now() + Math.random(),
       type:  isSalida ? "salida" : "entrada",
       mat:   item.mat,
       kg:    kgOperacion,
@@ -352,17 +364,14 @@ function confirmAndRegisterInvoice() {
     state.movements.push(movement);
   });
 
-  // Guardar cambios en LocalStorage
   saveInventory(state.inventory);
   if (typeof saveMovements === "function") {
     saveMovements(state.movements);
   }
 
-  // Refrescar las tablas y KPIs de la pestaña Inventario
   refreshInventoryView();
   return true;
 }
-
 
 function clearInvoice() {
   state.invItems = [{ mat: MATERIALS[0].id, kg: 0, price: 0 }];
@@ -372,13 +381,9 @@ function clearInvoice() {
 }
 
 function printInvoice() {
-  // 1. Intentar procesar y descontar del inventario primero
   const procesadoExitoso = confirmAndRegisterInvoice();
-  
-  // Si falló la validación (ej. no había stock), detenemos la impresión
   if (!procesadoExitoso) return;
 
-  // 2. Si el inventario se actualizó correctamente, procedemos a imprimir el tiquete
   const content = document.getElementById("invContent").innerHTML;
   const w = window.open("", "_blank");
   
@@ -399,7 +404,7 @@ function printInvoice() {
           color: #000; 
           background-color: #fff;
         }
-        h3 { text-align: center; font-size: 13px; font-weight: bold; margin-bottom: 5px; text-transform: uppercase; }
+        h3 { text-align: center; font-size: 11px; font-weight: bold; margin-bottom: 5px; text-transform: uppercase; }
         .inv-row { display: flex; justify-content: space-between; align-items: flex-start; width: 100%; margin: 2px 0; }
         .sep { border-top: 1px dashed #000; margin: 5px 0; width: 100%; display: block; }
         .inv-footer { text-align: center; font-size: 10px; margin-top: 8px; }
@@ -418,7 +423,6 @@ function printInvoice() {
   setTimeout(() => {
     w.print();
     w.close();
-    // Limpiar la sección de la factura para la siguiente venta
     clearInvoice(); 
   }, 250);
 }
