@@ -342,6 +342,7 @@ function buildInvoiceHTML({ client, type, items, prices }) {
         color: #000 !important; /* Negro absoluto */
         line-height: 1.2;
         background: #fff;
+        margin: 5mm;
       }
       .t-row {
         display: flex;
@@ -394,7 +395,7 @@ function buildInvoiceHTML({ client, type, items, prices }) {
       <div class="t-sep"></div>
       
       <div style="text-align: center; font-size: 10px; font-weight: bold; margin-top: 5px; text-transform: uppercase; color: #000 !important; line-height: 1.3;">
-        Barranquilla<br>Gracias por su negocio
+        Soledad<br>Gracias por su negocio
       </div>
     </div>`;
 }
