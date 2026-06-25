@@ -56,16 +56,32 @@ function renderDateBadge() {
 /* ── Stats ───────────────────────────────────────────────── */
 
 /**
- * Renderiza las tarjetas de resumen (Vaciado a petición del usuario).
+ * Renderiza el bloque de resumen.
+ * CORRECCIÓN: Se restauran únicamente los contadores de materiales y movimientos diarios.
  * @param {Record<string,number>} inventory
  * @param {Record<string,number>} prices
  * @param {import('./storage').Movement[]} movements
  */
 function renderStats(inventory, prices, movements) {
   const el = document.getElementById("statsGrid");
-  if (el) {
-    el.innerHTML = ""; // Quitamos las tarjetas del DOM
-  }
+  if (!el) return;
+
+  // Calculamos los dos indicadores solicitados
+  const active = MATERIALS.filter((m) => (inventory[m.id] || 0) > 0).length;
+  const todayMovs = movements.filter((m) => m.date === todayStr()).length;
+
+  // Renderizamos solo las 2 tarjetas deseadas
+  el.innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">Materiales</div>
+      <div class="stat-val">${active}</div>
+      <div class="stat-sub">con stock</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Movimientos hoy</div>
+      <div class="stat-val">${todayMovs}</div>
+      <div class="stat-sub">registrados</div>
+    </div>`;
 }
 
 /* ── Tabla de inventario ─────────────────────────────────── */
