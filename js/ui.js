@@ -56,36 +56,16 @@ function renderDateBadge() {
 /* ── Stats ───────────────────────────────────────────────── */
 
 /**
- * Renderiza las 4 tarjetas de resumen.
+ * Renderiza las tarjetas de resumen (Vaciado a petición del usuario).
  * @param {Record<string,number>} inventory
  * @param {Record<string,number>} prices
  * @param {import('./storage').Movement[]} movements
  */
 function renderStats(inventory, prices, movements) {
-  // Solo sumamos kg (no und) para el peso total
-  const totalKg = MATERIALS.reduce((a, m) => {
-    if ((m.unit || "kg") === "kg") return a + (inventory[m.id] || 0);
-    return a;
-  }, 0);
-
-  const totalVal = MATERIALS.reduce(
-    (a, m) => a + (inventory[m.id] || 0) * (prices[m.id] || 0),
-    0,
-  );
-  const active = MATERIALS.filter((m) => (inventory[m.id] || 0) > 0).length;
-  const todayMovs = movements.filter((m) => m.date === todayStr()).length;
-
-  document.getElementById("statsGrid").innerHTML = `
-    <div class="stat-card">
-      <div class="stat-label">Materiales</div>
-      <div class="stat-val">${active}</div>
-      <div class="stat-sub">con stock</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Movimientos hoy</div>
-      <div class="stat-val">${todayMovs}</div>
-      <div class="stat-sub">registrados</div>
-    </div>`;
+  const el = document.getElementById("statsGrid");
+  if (el) {
+    el.innerHTML = ""; // Quitamos las tarjetas del DOM
+  }
 }
 
 /* ── Tabla de inventario ─────────────────────────────────── */
@@ -312,10 +292,9 @@ function buildInvoiceHTML({ client, type, items, prices }) {
       <span style="font-family: monospace;">${fmtCOP(r.total)}</span>
     </div>`).join("");
 
-  // CORRECCIÓN: Encabezado compacto en dos niveles para evitar que se corte en los 58mm
   return `
     <h3 style="text-align: center; font-size: 12px; font-weight: bold; margin: 0 0 2px 0; text-transform: uppercase; letter-spacing: -0.3px;">
-      TIQUETE DE ${type}
+      Factura
     </h3>
     <div style="text-align: center; font-size: 10px; color: #000; margin-bottom: 4px; font-weight: bold;">
       CHATARRERÍA

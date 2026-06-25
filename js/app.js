@@ -393,26 +393,80 @@ function printInvoice() {
     <head>
       <title>Tiquete MetalStock</title>
       <style>
-        @page { margin: 0; size: 58mm auto; }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { 
-          font-family: 'Courier New', Courier, monospace; 
-          font-size: 12px; 
-          line-height: 1.2;
-          padding: 2mm; 
-          width: 100%;  
-          color: #000; 
-          background-color: #fff;
+        /* Forzar tamaño de página física y eliminar márgenes del driver del sistema */
+        @page { 
+          size: 58mm auto; 
+          margin: 0mm; 
         }
-        h3 { text-align: center; font-size: 11px; font-weight: bold; margin-bottom: 5px; text-transform: uppercase; }
-        .inv-row { display: flex; justify-content: space-between; align-items: flex-start; width: 100%; margin: 2px 0; }
-        .sep { border-top: 1px dashed #000; margin: 5px 0; width: 100%; display: block; }
-        .inv-footer { text-align: center; font-size: 10px; margin-top: 8px; }
-        .cut-space { height: 15mm; display: block; }
+        
+        /* Reset total e inyección de caja fija para evitar cortes a la derecha */
+        * { 
+          box-sizing: border-box; 
+          margin: 0; 
+          padding: 0; 
+        }
+        
+        html, body {
+          width: 58mm;
+          max-width: 58mm;
+          background-color: #fff;
+          color: #000;
+          font-family: 'Courier New', Courier, monospace; 
+          font-size: 11px; /* Bajamos un punto para garantizar legibilidad en 58mm */
+          line-height: 1.2;
+        }
+
+        /* Contenedor contenedor estricto para que NADA flote o se desborde a la derecha */
+        .ticket-wrapper {
+          width: 100%;
+          padding: 2mm 3mm 2mm 1mm; /* Margen derecho sutil para que no toque el borde del papel */
+          overflow: hidden;
+          display: block;
+        }
+        
+        h3 { 
+          text-align: center; 
+          font-size: 11px; 
+          font-weight: bold; 
+          margin-bottom: 2px; 
+          text-transform: uppercase; 
+          width: 100%;
+        }
+        
+        /* Flexbox seguro para chatas térmicas */
+        .inv-row { 
+          display: flex; 
+          justify-content: space-between; 
+          align-items: flex-start; 
+          width: 100%; 
+          margin: 2px 0;
+          word-break: break-all;
+        }
+        
+        .sep { 
+          border-top: 1px dashed #000; 
+          margin: 4px 0; 
+          width: 100%; 
+          display: block; 
+        }
+        
+        .inv-footer { 
+          text-align: center; 
+          font-size: 9px; 
+          margin-top: 6px; 
+          width: 100%;
+        }
+        
+        .cut-space { 
+          height: 12mm; 
+          display: block; 
+        }
       </style>
     </head>
     <body>
-      ${content}
+      <div class="ticket-wrapper">
+        ${content}
+      </div>
       <div class="cut-space"></div>
     </body>
     </html>
