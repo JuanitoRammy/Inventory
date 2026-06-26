@@ -27,14 +27,14 @@ const CATEGORIES = {
  * @property {'kg'|'und'} unit
  */
 
+
 /** @type {Material[]} */
 const MATERIALS = [
   // ── Cobre y bronce ──────────────────────────────────────
-  { id: "cobre1", name: "Cobre 1", cat: "cobre", color: "#854F0B", price: 41750, unit: "kg" },
-  { id: "cobre2", name: "Cobre 2", cat: "cobre", color: "#BA7517", price: 39950, unit: "kg" },
-  { id: "bronce", name: "Bronce", cat: "cobre", color: "#633806", price: 26200, unit: "kg" },
+  { id: "cobre1", name: "Cobre 1 (Limpio)", cat: "cobre", color: "#854F0B", price: 35000, unit: "kg" }, 
+  { id: "cobre2", name: "Cobre 2 (Sucio)", cat: "cobre", color: "#BA7517", price: 32000, unit: "kg" }, 
+  { id: "bronce", name: "Bronce", cat: "cobre", color: "#633806", price: 20000, unit: "kg" },           
   { id: "bronce_b", name: "Bronce tipo B", cat: "cobre", color: "#412402", price: 25600, unit: "kg" },
-
 
   // ── Radiadores ───────────────────────────────────────────
   { id: "rad_cobre", name: "Radiador de cobre", cat: "radiador", color: "#E24B4A", price: 26100, unit: "kg" },
@@ -43,13 +43,14 @@ const MATERIALS = [
 
   // ── Aluminio ────────────────────────────────────────────
   { id: "alum_guaya", name: "Aluminio guaya", cat: "aluminio", color: "#378ADD", price: 12200, unit: "kg" },
-  { id: "blando", name: "Blando (aluminio)", cat: "aluminio", color: "#85B7EB", price: 6900, unit: "kg" },
-  { id: "pote", name: "Pote", cat: "aluminio", color: "#B5D4F4", price: 8300, unit: "kg" },
+  { id: "blando", name: "Blando (aluminio)", cat: "aluminio", color: "#85B7EB", price: 6000, unit: "kg" },
+  { id: "pote", name: "Pote-Lata", cat: "aluminio", color: "#B5D4F4", price: 6500, unit: "kg" },           
   { id: "pote_aero", name: "Pote aerosol", cat: "aluminio", color: "#E6F1FB", price: 5800, unit: "kg" },
 
   // ── Acero / Hierro ───────────────────────────────────────
-  { id: "acero", name: "Acero", cat: "acero", color: "#888780", price: 3400, unit: "kg" },
+  { id: "acero", name: "Acero", cat: "acero", color: "#888780", price: 2000, unit: "kg" },                
   { id: "acero_dim", name: "Acero dimensionado", cat: "acero", color: "#5F5E5A", price: 2900, unit: "kg" },
+  { id: "hierro", name: "Hierro", cat: "acero", color: "#4b4a46", price: 6500, unit: "kg" },       
   { id: "grueso", name: "Grueso", cat: "acero", color: "#444441", price: 6900, unit: "kg" },
   { id: "grueso_cil", name: "Cilindro grueso", cat: "acero", color: "#2C2C2A", price: 2000, unit: "kg" },
   { id: "olla", name: "Olla", cat: "acero", color: "#B4B2A9", price: 8200, unit: "kg" },
@@ -61,7 +62,8 @@ const MATERIALS = [
   { id: "rin_bici", name: "Rines bicicleta", cat: "rines", color: "#5DCAA5", price: 6900, unit: "kg" },
   { id: "rin_camion", name: "Rines camión", cat: "rines", color: "#085041", price: 7600, unit: "kg" },
 
-  // ── Baterías — por UNIDAD ────────────────────────────────
+  // ── Baterías ─────────────────────────────────────────────
+  { id: "b_grande_kg", name: "Batería Grande (Kg)", cat: "baterias", color: "#3B0764", price: 20000, unit: "kg" }, 
   { id: "b_grupo_1", name: "B. Grupo 1", cat: "baterias", color: "#6D28D9", price: 37400, unit: "und" },
   { id: "b_grupo_2", name: "B. Grupo 2", cat: "baterias", color: "#7C3AED", price: 45000, unit: "und" },
   { id: "b_grupo_3", name: "B. Grupo 3", cat: "baterias", color: "#8B5CF6", price: 56750, unit: "und" },
@@ -69,6 +71,24 @@ const MATERIALS = [
   { id: "b_grupo_5", name: "B. Grupo 5", cat: "baterias", color: "#C4B5FD", price: 110300, unit: "und" },
   { id: "b_grupo_07", name: "B. Grupo 7", cat: "baterias", color: "#4C1D95", price: 23700, unit: "und" },
   { id: "b_grupo_08", name: "B. Grupo 8", cat: "baterias", color: "#5B21B6", price: 29750, unit: "und" },
+
+  // ── Plásticos y Derivados (NUEVA CATEGORÍA) ─────────────
+  { id: "canasta", name: "Canasta", cat: "plastico", color: "#0284c7", price: 1300, unit: "kg" },          
+  { id: "pasta_p", name: "Pasta", cat: "plastico", color: "#0369a1", price: 1000, unit: "kg" },             
+  { id: "pet", name: "PET", cat: "plastico", color: "#0e7490", price: 1200, unit: "kg" },                   
+  { id: "plastico_gen", name: "Plástico General", cat: "plastico", color: "#155e75", price: 600, unit: "kg" },
+  { id: "silla_grande", name: "Silla Grande", cat: "plastico", color: "#1e40af", price: 3000, unit: "kg" },  
+  { id: "tapa_plastica", name: "Tapa Plástica", cat: "plastico", color: "#2563eb", price: 500, unit: "kg" }, 
+  { id: "botella_aceite", name: "Botella de Aceite", cat: "plastico", color: "#047857", price: 200, unit: "kg" }, 
+  { id: "botella_pony", name: "Botella Pony", cat: "plastico", color: "#065f46", price: 200, unit: "kg" },   
+
+  // ── Papel y Cartón (NUEVA CATEGORÍA) ─────────────────────
+  { id: "archivo", name: "Archivo", cat: "papel", color: "#4b5563", price: 600, unit: "kg" },               
+  { id: "carton", name: "Cartón", cat: "papel", color: "#78350f", price: 280, unit: "kg" },                 
+
+  // ── Vidrio (NUEVA CATEGORÍA) ─────────────────────────────
+  { id: "vidrio", name: "Vidrio", cat: "vidrio", color: "#475569", price: 100, unit: "kg" },                
+
   // ── Bajo grado ───────────────────────────────────────────
   { id: "b_grado_marron", name: "Bajo grado marrón", cat: "Bajo grado", color: "#af6715", price: 2170, unit: "kg" },
   { id: "b_grado_verde", name: "Bajo grado verde", cat: "Bajo grado", color: "#186d1f", price: 2270, unit: "kg" },
@@ -92,6 +112,7 @@ const MATERIALS = [
   // ── Plomo ────────────────────────────────────────────────
   { id: "plomo_retal", name: "Plomo Retal", cat: "plomo", color: "#0F172A", price: 4800, unit: "kg" },
   { id: "plomo_balan", name: "Plomo Balancín", cat: "plomo", color: "#1E293B", price: 4550, unit: "kg" },
+  { id: "plomo_gen", name: "Plomo", cat: "plomo", color: "#334155", price: 3000, unit: "kg" },              
 
   // ── E-Waste (tarjetas — por kg) ──────────────────────────
   { id: "ram", name: "Memoria RAM", cat: "e-waste", color: "#059669", price: 235000, unit: "kg" },
@@ -119,7 +140,7 @@ const MATERIALS = [
   { id: "cd_reciclaje", name: "CD", cat: "especial", color: "#A78BFA", price: 1000, unit: "kg" },
 
   // ── Otros ────────────────────────────────────────────────
-  { id: "antimonio", name: "Antimonio", cat: "otro", color: "#7F77DD", price: 7000, unit: "kg" },
+  { id: "antimonio", name: "Antimonio", cat: "otro", color: "#7F77DD", price: 3000, unit: "kg" },          
 ];
 
 function getMaterial(id) {

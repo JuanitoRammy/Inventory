@@ -358,7 +358,7 @@ function buildInvoiceHTML({ client, type, items, prices }) {
 
     <div class="ticket-body">
       <h3 style="text-align: center; font-size: 13px; font-weight: bold; margin: 0 0 1px 0; text-transform: uppercase; color: #000 !important;">
-        CHATARRERÍA
+        CHATARRERÍA PIPA
       </h3>
       <div style="text-align: center; font-size: 11px; font-weight: bold; margin-bottom: 5px; color: #000 !important;">
         TIQUETE DE ${type === "COMPRA" ? "COMPRA" : "VENTA"}

@@ -396,7 +396,7 @@ function printInvoice() {
   if (!ticketHTML) return;
 
   // Abrimos una ventana emergente limpia y aislada de la app 
-  const w = window.open("", "_blank", "width=300,height=600");
+  const w = window.open("", "_blank", "width=900,height=600");
   
   if (!w) {
     alert("Por favor, permite las ventanas emergentes (pop-ups) para poder imprimir desde el celular.");
