@@ -66,11 +66,9 @@ function renderStats(inventory, prices, movements) {
   const el = document.getElementById("statsGrid");
   if (!el) return;
 
-  // Calculamos los dos indicadores solicitados
   const active = MATERIALS.filter((m) => (inventory[m.id] || 0) > 0).length;
   const todayMovs = movements.filter((m) => m.date === todayStr()).length;
 
-  // Renderizamos solo las 2 tarjetas deseadas
   el.innerHTML = `
     <div class="stat-card">
       <div class="stat-label">Materiales</div>
@@ -229,10 +227,10 @@ function renderPriceChips(prices, prevPrices) {
   el.innerHTML = html;
 }
 
-/* ── Factura ─────────────────────────────────────────────── */
+/* ── Factura con buscador rápido integrado a state.invItems ─────────────────────────── */
 
 /**
- * Renderiza las líneas de ítems en el formulario de factura.
+ * Renderiza las líneas de ítems agregados y mantiene el buscador superior sin perder foco.
  * @param {{ mat:string, kg:number, price:number }[]} items
  * @param {Record<string,number>} prices
  */
@@ -240,50 +238,165 @@ function renderInvoiceItems(items, prices) {
   const el = document.getElementById("invItems");
   if (!el) return;
 
-  el.innerHTML = items.map((it, i) => {
+  // 1. Inyectamos la estructura base del buscador la primera vez
+  if (!document.getElementById("invSearchInput")) {
+    el.innerHTML = `
+      <div class="invoice-search-container" style="position:relative; margin-bottom:15px; width:100%;">
+        <label style="font-weight:bold; font-size:12px; display:block; margin-bottom:4px;">Escribe para buscar y añadir material:</label>
+        <input type="text" id="invSearchInput" autocomplete="off" placeholder="Ej: Cobre, Chatarra, Batería..." style="width:100%; padding:8px; box-sizing:border-box;" />
+        <div id="invSearchResults" style="position:absolute; top:100%; left:0; right:0; background:#fff; border:1px solid #ccc; z-index:100; max-height:200px; overflow-y:auto; display:none; box-shadow:0 4px 6px rgba(0,0,0,0.1);"></div>
+      </div>
+      <div id="invRowsContainer"></div>
+    `;
+    setupInvoiceSearch(prices);
+  }
+
+  const rowsContainer = document.getElementById("invRowsContainer");
+  if (!rowsContainer) return;
+
+  // Si no hay ítems reales en el estado, mostramos un aviso limpio
+  if (!items || !items.length) {
+    rowsContainer.innerHTML = '<p style="font-size:12px;color:var(--text-muted);padding:0.5rem 0;text-align:center;">Busca un material arriba para comenzar.</p>';
+    return;
+  }
+
+  // 2. Renderizamos las filas sincronizadas exactamente con los índices del arreglo `state.invItems`
+  rowsContainer.innerHTML = items.map((it, i) => {
     const mat  = getMaterial(it.mat);
     const unit = mat?.unit || "kg";
 
     return `
-    <div class="form-row" style="align-items:flex-end;margin-bottom:8px;">
-      <div class="form-group">
-        <label>Material</label>
-        <select data-inv-mat="${i}">
-          ${MATERIALS.map(
-            (m) => `<option value="${m.id}"${m.id === it.mat ? " selected" : ""}>${m.name}</option>`,
-          ).join("")}
-        </select>
+    <div class="form-row" style="align-items:flex-end; margin-bottom:8px; background:var(--bg-card, #fafafa); padding:6px; border-radius:4px;">
+      <div class="form-group" style="flex:2;">
+        <label style="font-size:11px; color:var(--text-muted);">Material</label>
+        <div style="font-weight:bold; font-size:13px; padding:6px 0;">${mat?.name || it.mat}</div>
+        <input type="hidden" data-inv-mat="${i}" value="${it.mat}" />
       </div>
-      <div class="form-group">
+      <div class="form-group" style="flex:1;">
         <label>Cant. (${unit})</label>
         <input type="number" data-inv-kg="${i}" value="${it.kg || ""}"
-               placeholder="0" min="0" step="${unit === "und" ? "1" : "0.1"}" />
+               placeholder="0" min="0" step="${unit === "und" ? "1" : "0.1"}" style="width:100%;" />
       </div>
-      <div class="form-group">
+      <div class="form-group" style="flex:1.2;">
         <label>Precio/${unit}</label>
         <input type="number" data-inv-price="${i}" value="${it.price || prices[it.mat] || ""}"
-               placeholder="auto" min="0" step="50" />
+               placeholder="auto" min="0" step="50" style="width:100%;" />
       </div>
       <div class="form-group" style="flex:0;">
-        <label>&nbsp;</label>
-        <button class="btn btn-sm btn-danger" data-inv-remove="${i}">✕</button>
+        <!-- Permitimos eliminar libremente basándonos en el índice de memoria -->
+        <button class="btn btn-sm btn-danger" data-inv-remove="${i}" style="margin-bottom:4px;">✕</button>
       </div>
     </div>`;
   }).join("");
 }
 
 /**
- * Genera el HTML de la factura optimizado estrictamente para tiqueteras de 58mm (384dots/line).
- * OPTIMIZACIÓN: Remoción de selectores intrusivos para compatibilidad móvil total y color sólido #000.
- * @param {{ client:string, type:string, items:object[], prices:Record<string,number> }} opts
- * @returns {string}
+ * Inicializa los escuchadores de eventos para el motor de búsqueda de materiales en factura.
+ * @param {Record<string,number>} prices
  */
+function setupInvoiceSearch(prices) {
+  const input = document.getElementById("invSearchInput");
+  const results = document.getElementById("invSearchResults");
+  if (!input || !results) return;
+
+  input.addEventListener("input", (e) => {
+    const q = e.target.value.trim().toLowerCase();
+    if (!q) {
+      results.style.display = "none";
+      return;
+    }
+
+    const matches = MATERIALS.filter(m => m.name.toLowerCase().includes(q));
+
+    if (!matches.length) {
+      results.innerHTML = `<div style="padding:8px; font-size:12px; color:#999;">No se encontraron materiales</div>`;
+    } else {
+      results.innerHTML = matches.map((m) => {
+        const price = prices[m.id] || 0;
+        const unit = m.unit || "kg";
+        return `
+          <div class="search-suggest-item" data-id="${m.id}" style="padding:8px; cursor:pointer; border-bottom:1px solid #eee; display:flex; justify-content:space-between; font-size:13px;">
+            <span><strong>${m.name}</strong></span>
+            <span style="color:var(--primary, #007bff); font-weight:bold;">${fmtCOP(price)}/${unit}</span>
+          </div>`;
+      }).join("");
+    }
+    results.style.display = "block";
+  });
+
+  results.addEventListener("click", (e) => {
+    const item = e.target.closest(".search-suggest-item");
+    if (!item) return;
+    triggerAddMaterialToInvoice(item.getAttribute("data-id"), prices);
+    input.value = "";
+    results.style.display = "none";
+  });
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const firstItem = results.querySelector(".search-suggest-item");
+      if (firstItem) {
+        triggerAddMaterialToInvoice(firstItem.getAttribute("data-id"), prices);
+        input.value = "";
+        results.style.display = "none";
+      }
+    }
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!input.contains(e.target) && !results.contains(e.target)) {
+      results.style.display = "none";
+    }
+  });
+}
+
 /**
- * Genera el HTML de la factura optimizado estrictamente para tiqueteras de 58mm (384dots/line).
- * AJUSTE: Centrado físico mediante padding interno controlado para evitar errores en móviles.
- * @param {{ client:string, type:string, items:object[], prices:Record<string,number> }} opts
- * @returns {string}
+ * Modifica directamente la memoria reactiva del estado central (state.invItems)
+ * @param {string} matId
+ * @param {Record<string,number>} prices
  */
+function triggerAddMaterialToInvoice(matId, prices) {
+  // Validamos la existencia segura del objeto del estado global en app.js
+  if (typeof state === 'undefined' || !state.invItems) return;
+
+  // REGLA SOLUCIÓN: Si sólo existe 1 ítem y es el Acero por defecto vacío (cantidad 0 o indefinida)
+  // lo reemplazamos directamente por el material que se acaba de buscar. ¡Adiós acero inicial molesto!
+  if (state.invItems.length === 1 && state.invItems[0].kg == 0) {
+    state.invItems[0] = {
+      mat: matId,
+      kg: 0,
+      price: prices[matId] || 0
+    };
+  } else {
+    // Si ya hay materiales activos con pesos digitados, verificamos duplicados
+    const existingIdx = state.invItems.findIndex(it => it.mat === matId);
+    if (existingIdx !== -1) {
+      const inputKg = document.querySelector(`[data-inv-kg="${existingIdx}"]`);
+      if (inputKg) inputKg.focus();
+      return;
+    }
+    // Si no existe en la lista, lo añadimos de manera normal al arreglo
+    state.invItems.push({
+      mat: matId,
+      kg: 0,
+      price: prices[matId] || 0
+    });
+  }
+
+  // Volvemos a pintar invocando la función pasándole el objeto global real modificado
+  renderInvoiceItems(state.invItems, state.prices);
+
+  // Ponemos el cursor en el input numérico del elemento insertado automáticamente
+  setTimeout(() => {
+    const targetIdx = state.invItems.length - 1;
+    const inputKg = document.querySelector(`[data-inv-kg="${targetIdx}"]`);
+    if (inputKg) inputKg.focus();
+  }, 50);
+}
+
+/* ── Factura HTML para impresión ─────────────────────────── */
+
 function buildInvoiceHTML({ client, type, items, prices }) {
   const now = new Date();
   const num = Date.now().toString().slice(-6);
@@ -318,23 +431,16 @@ function buildInvoiceHTML({ client, type, items, prices }) {
 
   return `
     <style>
-      /* Configuración nativa del rollo de 58mm */
       @page {
         size: 58mm auto;
         margin: 0 !important;
       }
-      
-      /* Contenedor principal del tiquete */
       .ticket-body {
         width: 48mm !important;
         max-width: 48mm !important;
         box-sizing: border-box;
-        
-        /* ── EL TRUCO DEL CENTRADO AQUÍ ── */
-        /* Si notas que aún le falta ir a la derecha, sube el 3mm a 4mm o 5mm */
         padding: 0 1mm 0 3mm !important; 
         margin: 0 !important;
-        
         font-family: 'Courier New', Courier, monospace;
         color: #000 !important;
         line-height: 1.2;
@@ -400,11 +506,6 @@ function buildInvoiceHTML({ client, type, items, prices }) {
 
 let _alertTimer = null;
 
-/**
- * Muestra un mensaje de alerta temporario.
- * @param {string} msg
- * @param {"success"|"error"} type
- */
 function showAlert(msg, type) {
   const el = document.getElementById("alertMsg");
   if (!el) return;
