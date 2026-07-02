@@ -43,6 +43,11 @@ function init() {
   renderInvoiceItems(state.invItems, state.prices);
 
   bindEvents();
+  
+  // ACTIVACIÓN DEL HISTORIAL: Escucha los clics de reimpresión rápida
+  if (typeof setupHistoryReprint === "function") {
+    setupHistoryReprint();
+  }
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -207,7 +212,11 @@ function clearMovForm() {
 function refreshMovementsView() {
   const mat  = document.getElementById("fMat") ?.value || "";
   const type = document.getElementById("fType")?.value || "";
-  renderMovements(state.movements, mat, type);
+  
+  // Enviamos una copia invertida para mostrar del más nuevo al más viejo arriba
+  const movementsInverted = [...state.movements].reverse();
+  
+  renderMovements(movementsInverted, mat, type);
 }
 
 function clearAllMovements() {
@@ -316,7 +325,7 @@ function confirmAndRegisterInvoice() {
   const isSalida = (typeLower === "salida" || typeLower === "venta");
 
   /* ══════════════════════════════════════════════════════════
-        CORRECCIÓN: AGREGACIÓN DE CANTIDADES POR MATERIAL
+        AGREGACIÓN DE CANTIDADES POR MATERIAL (VALIDACIÓN)
      ══════════════════════════════════════════════════════════ */
   if (isSalida) {
     const totalsByMaterial = {};
@@ -338,7 +347,13 @@ function confirmAndRegisterInvoice() {
     }
   }
 
-  // Aplicar la matemática al inventario
+  /* ══════════════════════════════════════════════════════════
+        NUEVO: GENERAR IDENTIFICADOR ÚNICO PARA LA FACTURA
+     ══════════════════════════════════════════════════════════ */
+  const invoiceId = Date.now(); 
+  const invoiceNum = invoiceId.toString().slice(-6);
+
+  // Aplicar la matemática al inventario y registrar filas vinculadas
   validItems.forEach((item) => {
     const currentStock = parseFloat(state.inventory[item.mat]) || 0;
     const kgOperacion = parseFloat(item.kg);
@@ -349,17 +364,19 @@ function confirmAndRegisterInvoice() {
       state.inventory[item.mat] = currentStock + kgOperacion;
     }
 
-    // Registrar en el historial
+    // Registrar en el historial de movimientos
     const movement = {
-      id:     Date.now() + Math.random(),
-      type:  isSalida ? "salida" : "entrada",
-      mat:   item.mat,
-      kg:    kgOperacion,
-      price: parseFloat(item.price) || 0,
-      total: kgOperacion * (parseFloat(item.price) || 0),
-      note:  `Factura (${type}): ${client}`,
-      date:  todayStr(),
-      time:  new Date().toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" }),
+      id:         Date.now() + Math.random(), // ID único del registro individual
+      invoiceId:  invoiceId,                 // <--- CLAVE: Agrupa los materiales en un mismo tiquete
+      invoiceNum: invoiceNum,                // <--- CLAVE: Guarda el número visual (los últimos 6 dígitos)
+      type:       isSalida ? "salida" : "entrada",
+      mat:        item.mat,
+      kg:         kgOperacion,
+      price:      parseFloat(item.price) || 0,
+      total:      kgOperacion * (parseFloat(item.price) || 0),
+      note:       `Factura (${type}): ${client}`,
+      date:       todayStr(),
+      time:       new Date().toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" }),
     };
     state.movements.push(movement);
   });

@@ -148,7 +148,7 @@ function populateFilterSelect() {
 /* ── Movimientos ─────────────────────────────────────────── */
 
 /**
- * Renderiza el historial filtrado.
+ * Renderiza el historial filtrado con opción de reimpresión.
  * @param {import('./storage').Movement[]} movements
  * @param {string} matFilter
  * @param {string} typeFilter
@@ -161,6 +161,8 @@ function renderMovements(movements, matFilter, typeFilter) {
   );
 
   const el = document.getElementById("movList");
+  if (!el) return;
+
   if (!filtered.length) {
     el.innerHTML =
       '<p style="font-size:12px;color:var(--text-muted);padding:1rem 0;">Sin movimientos registrados.</p>';
@@ -170,17 +172,31 @@ function renderMovements(movements, matFilter, typeFilter) {
   el.innerHTML = filtered.map((m) => {
     const mat  = getMaterial(m.mat);
     const unit = mat?.unit || "kg";
-    return `<div class="mov-item">
-      <div class="mov-icon ${m.type === "entrada" ? "mov-in" : "mov-out"}">
-        ${m.type === "entrada" ? "+" : "−"}
+    
+    // CORRECCIÓN CLAVE: El botón debe almacenar la propiedad invoiceId si existe o m.id si es individual
+    const reprintTarget = m.invoiceId || m.id;
+    const tiqueteLabel = m.invoiceNum ? ` · Tiquete: No. ${m.invoiceNum}` : '';
+
+    return `<div class="mov-item" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 6px; border-radius: 4px; background: var(--bg-card, #fafafa);">
+      <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
+        <div class="mov-icon ${m.type === "entrada" ? "mov-in" : "mov-out"}">
+          ${m.type === "entrada" ? "+" : "−"}
+        </div>
+        <div class="mov-info">
+          <strong>${mat?.name || m.mat} — ${m.type}</strong>
+          <br>
+          <span style="font-size: 11px; color: var(--text-muted);">${m.date} ${m.time}${tiqueteLabel}${m.note ? " · " + m.note : ""}</span>
+        </div>
       </div>
-      <div class="mov-info">
-        <strong>${mat?.name || m.mat} — ${m.type}</strong>
-        <span>${m.date} ${m.time}${m.note ? " · " + m.note : ""}</span>
+      <div class="mov-weight" style="text-align: right; margin-right: 10px;">
+        <strong>${fmtQty(m.kg, unit)}</strong>
+        <br>
+        <small style="color: var(--text-muted);">${fmtCOP(m.total)}</small>
       </div>
-      <div class="mov-weight">
-        ${fmtQty(m.kg, unit)}
-        <small>${fmtCOP(m.total)}</small>
+      <div>
+        <button class="btn btn-sm" data-reprint="${reprintTarget}" title="Reimprimir tiquete completo" style="padding: 4px 8px; background: #e0e0e0; border: none; cursor: pointer; border-radius: 4px;">
+          🖨️
+        </button>
       </div>
     </div>`;
   }).join("");
@@ -227,6 +243,80 @@ function renderPriceChips(prices, prevPrices) {
   el.innerHTML = html;
 }
 
+/**
+ * Configura el escuchador global para los botones de reimpresión en el historial.
+ */
+function setupHistoryReprint() {
+  const el = document.getElementById("movList");
+  if (!el) return;
+
+  el.addEventListener("click", (e) => {
+    const button = e.target.closest("[data-reprint]");
+    if (!button) return;
+
+    const targetId = parseFloat(button.getAttribute("data-reprint"));
+    
+    if (typeof state === "undefined" || !state.movements) {
+      showAlert("No se pudo acceder al historial.", "danger");
+      return;
+    }
+
+    // Buscamos todos los movimientos vinculados al identificador numérico
+    const associatedMovs = state.movements.filter(m => m.invoiceId === targetId || m.id === targetId);
+
+    if (!associatedMovs.length) {
+      showAlert("No se encontraron registros para este tiquete.", "danger");
+      return;
+    }
+
+    const baseMov = associatedMovs[0];
+    
+    let clientName = baseMov.note || "Cliente Historial";
+    if (clientName.includes("): ")) {
+      clientName = clientName.split("): ")[1];
+    }
+
+    const reconstructedItems = associatedMovs.map(m => ({
+      mat: m.mat,
+      kg: m.kg,
+      price: m.price
+    }));
+
+    const invoiceData = {
+      client: clientName,
+      type: baseMov.type === "entrada" ? "COMPRA" : "VENTA",
+      prices: state.prices,
+      items: reconstructedItems
+    };
+
+    const htmlTicket = buildInvoiceHTML(invoiceData);
+
+    if (!htmlTicket) {
+      showAlert("Error al reconstruir el tiquete.", "amber");
+      return;
+    }
+
+    let finalHtml = htmlTicket;
+    if (baseMov.invoiceNum) {
+      finalHtml = htmlTicket.replace(/No\.\s\d+/, `No. ${baseMov.invoiceNum}`);
+    }
+
+    const win = window.open("", "_blank", "width=300,height=400");
+    if (!win) {
+      alert("Por favor permite las ventanas emergentes para imprimir.");
+      return;
+    }
+    
+    win.document.write(finalHtml);
+    win.document.close();
+    
+    setTimeout(() => {
+      win.print();
+      win.close();
+    }, 250);
+  });
+}
+
 /* ── Factura con buscador rápido integrado a state.invItems ─────────────────────────── */
 
 /**
@@ -238,7 +328,6 @@ function renderInvoiceItems(items, prices) {
   const el = document.getElementById("invItems");
   if (!el) return;
 
-  // 1. Inyectamos la estructura base del buscador la primera vez
   if (!document.getElementById("invSearchInput")) {
     el.innerHTML = `
       <div class="invoice-search-container" style="position:relative; margin-bottom:15px; width:100%;">
@@ -254,13 +343,11 @@ function renderInvoiceItems(items, prices) {
   const rowsContainer = document.getElementById("invRowsContainer");
   if (!rowsContainer) return;
 
-  // Si no hay ítems reales en el estado, mostramos un aviso limpio
   if (!items || !items.length) {
     rowsContainer.innerHTML = '<p style="font-size:12px;color:var(--text-muted);padding:0.5rem 0;text-align:center;">Busca un material arriba para comenzar.</p>';
     return;
   }
 
-  // 2. Renderizamos las filas sincronizadas exactamente con los índices del arreglo `state.invItems`
   rowsContainer.innerHTML = items.map((it, i) => {
     const mat  = getMaterial(it.mat);
     const unit = mat?.unit || "kg";
@@ -283,7 +370,6 @@ function renderInvoiceItems(items, prices) {
                placeholder="auto" min="0" step="50" style="width:100%;" />
       </div>
       <div class="form-group" style="flex:0;">
-        <!-- Permitimos eliminar libremente basándonos en el índice de memoria -->
         <button class="btn btn-sm btn-danger" data-inv-remove="${i}" style="margin-bottom:4px;">✕</button>
       </div>
     </div>`;
@@ -357,11 +443,8 @@ function setupInvoiceSearch(prices) {
  * @param {Record<string,number>} prices
  */
 function triggerAddMaterialToInvoice(matId, prices) {
-  // Validamos la existencia segura del objeto del estado global en app.js
   if (typeof state === 'undefined' || !state.invItems) return;
 
-  // REGLA SOLUCIÓN: Si sólo existe 1 ítem y es el Acero por defecto vacío (cantidad 0 o indefinida)
-  // lo reemplazamos directamente por el material que se acaba de buscar.
   if (state.invItems.length === 1 && state.invItems[0].kg == 0) {
     state.invItems[0] = {
       mat: matId,
@@ -369,8 +452,6 @@ function triggerAddMaterialToInvoice(matId, prices) {
       price: prices[matId] || 0
     };
   } else {
-    // SE HA ELIMINADO EL BLOQUEO DE DUPLICADOS:
-    // Ahora permitimos que un material se repita libremente agregando un nuevo objeto al arreglo.
     state.invItems.push({
       mat: matId,
       kg: 0,
@@ -378,10 +459,8 @@ function triggerAddMaterialToInvoice(matId, prices) {
     });
   }
 
-  // Volvemos a pintar invocando la función pasándole el objeto global real modificado
   renderInvoiceItems(state.invItems, state.prices);
 
-  // Ponemos el cursor en el input numérico del elemento recién insertado automáticamente
   setTimeout(() => {
     const targetIdx = state.invItems.length - 1;
     const inputKg = document.querySelector(`[data-inv-kg="${targetIdx}"]`);

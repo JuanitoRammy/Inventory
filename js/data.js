@@ -43,7 +43,7 @@ const MATERIALS = [
 
   // ── Aluminio ────────────────────────────────────────────
   { id: "alum_guaya", name: "Aluminio guaya", cat: "aluminio", color: "#378ADD", price: 12200, unit: "kg" },
-  { id: "blando", name: "Blando (aluminio)", cat: "aluminio", color: "#85B7EB", price: 6000, unit: "kg" },
+  { id: "blando", name: "Aluminio (blando)", cat: "aluminio", color: "#85B7EB", price: 6000, unit: "kg" },
   { id: "pote", name: "Pote-Lata", cat: "aluminio", color: "#B5D4F4", price: 6500, unit: "kg" },           
   { id: "pote_aero", name: "Pote aerosol", cat: "aluminio", color: "#E6F1FB", price: 5800, unit: "kg" },
 
