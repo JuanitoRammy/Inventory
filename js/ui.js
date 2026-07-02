@@ -361,7 +361,7 @@ function triggerAddMaterialToInvoice(matId, prices) {
   if (typeof state === 'undefined' || !state.invItems) return;
 
   // REGLA SOLUCIÓN: Si sólo existe 1 ítem y es el Acero por defecto vacío (cantidad 0 o indefinida)
-  // lo reemplazamos directamente por el material que se acaba de buscar. ¡Adiós acero inicial molesto!
+  // lo reemplazamos directamente por el material que se acaba de buscar.
   if (state.invItems.length === 1 && state.invItems[0].kg == 0) {
     state.invItems[0] = {
       mat: matId,
@@ -369,14 +369,8 @@ function triggerAddMaterialToInvoice(matId, prices) {
       price: prices[matId] || 0
     };
   } else {
-    // Si ya hay materiales activos con pesos digitados, verificamos duplicados
-    const existingIdx = state.invItems.findIndex(it => it.mat === matId);
-    if (existingIdx !== -1) {
-      const inputKg = document.querySelector(`[data-inv-kg="${existingIdx}"]`);
-      if (inputKg) inputKg.focus();
-      return;
-    }
-    // Si no existe en la lista, lo añadimos de manera normal al arreglo
+    // SE HA ELIMINADO EL BLOQUEO DE DUPLICADOS:
+    // Ahora permitimos que un material se repita libremente agregando un nuevo objeto al arreglo.
     state.invItems.push({
       mat: matId,
       kg: 0,
@@ -387,7 +381,7 @@ function triggerAddMaterialToInvoice(matId, prices) {
   // Volvemos a pintar invocando la función pasándole el objeto global real modificado
   renderInvoiceItems(state.invItems, state.prices);
 
-  // Ponemos el cursor en el input numérico del elemento insertado automáticamente
+  // Ponemos el cursor en el input numérico del elemento recién insertado automáticamente
   setTimeout(() => {
     const targetIdx = state.invItems.length - 1;
     const inputKg = document.querySelector(`[data-inv-kg="${targetIdx}"]`);
