@@ -246,11 +246,20 @@ function renderPriceChips(prices, prevPrices) {
 /**
  * Configura el escuchador global para los botones de reimpresión en el historial.
  */
+/**
+ * Configura el escuchador global para los botones de reimpresión en el historial.
+ * OPTIMIZADO: Adaptado con la misma compatibilidad móvil y de tiquetera 58mm de la Factura.
+ */
 function setupHistoryReprint() {
   const el = document.getElementById("movList");
   if (!el) return;
 
-  el.addEventListener("click", (e) => {
+  // Clonamos el elemento para remover listeners previos y evitar ejecuciones duplicadas
+  const oldEl = el;
+  const newEl = oldEl.cloneNode(true);
+  oldEl.parentNode.replaceChild(newEl, oldEl);
+
+  newEl.addEventListener("click", (e) => {
     const button = e.target.closest("[data-reprint]");
     if (!button) return;
 
@@ -271,9 +280,11 @@ function setupHistoryReprint() {
 
     const baseMov = associatedMovs[0];
     
-    let clientName = baseMov.note || "Cliente Historial";
-    if (clientName.includes("): ")) {
-      clientName = clientName.split("): ")[1];
+    let clientName = "Cliente General";
+    if (baseMov.note && baseMov.note.includes("): ")) {
+      clientName = baseMov.note.split("): ")[1];
+    } else if (baseMov.note && baseMov.note.includes(": ")) {
+      clientName = baseMov.note.split(": ")[1];
     }
 
     const reconstructedItems = associatedMovs.map(m => ({
@@ -301,19 +312,58 @@ function setupHistoryReprint() {
       finalHtml = htmlTicket.replace(/No\.\s\d+/, `No. ${baseMov.invoiceNum}`);
     }
 
-    const win = window.open("", "_blank", "width=300,height=400");
+    // SOLUCIÓN AL ERROR DE COMPATIBILIDAD MÓVIL:
+    // Se usa la misma configuración de apertura (width=900) que sí acepta el spooler de Android/iOS
+    const win = window.open("", "_blank", "width=900,height=600");
     if (!win) {
-      alert("Por favor permite las ventanas emergentes para imprimir.");
+      alert("Por favor permite las ventanas emergentes para poder imprimir el tiquete.");
       return;
     }
     
-    win.document.write(finalHtml);
-    win.document.close();
+    // Inyección de estructura HTML idéntica al flujo exitoso de Factura
+    win.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Copia Tiquete — No. ${baseMov.invoiceNum || "REIMP"}</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <style>
+          @page {
+            size: 58mm auto;
+            margin: 0 !important;
+          }
+          @media print {
+            body {
+              margin: 0 !important;
+              padding: 0 !important;
+              background: #fff;
+            }
+          }
+          body {
+            margin: 0;
+            padding: 0;
+            background: #fff;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+        </style>
+      </head>
+      <body style="margin: 0; padding: 0; background: #fff;">
+     
+        ${finalHtml}
+        <div style="height: 10mm;"></div>
+        <script>
+          window.onload = function() {
+            window.print();
+            setTimeout(function() { win.close(); }, 500);
+          };
+        <\/script>
+      </body>
+      </html>
+    `);
     
-    setTimeout(() => {
-      win.print();
-      win.close();
-    }, 250);
+    win.document.close();
   });
 }
 

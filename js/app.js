@@ -91,7 +91,7 @@ function bindEvents() {
   document.getElementById("invItems").addEventListener("input",  handleInvItemChange);
   document.getElementById("invItems").addEventListener("click",  handleInvItemClick);
 
-  document.getElementById("btnAddItem")  .addEventListener("click", addInvItem);
+  // document.getElementById("btnAddItem")  .addEventListener("click", addInvItem);
   document.getElementById("btnGenInvoice").addEventListener("click", genInvoice);
   document.getElementById("btnClearInv") .addEventListener("click", clearInvoice);
   document.getElementById("btnPrint")    .addEventListener("click", printInvoice);
