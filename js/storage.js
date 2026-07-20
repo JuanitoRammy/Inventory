@@ -172,3 +172,28 @@ function loadPrevPrices() {
 function savePrevPrices(prev) {
   _write("ms_prev_prices", prev);
 }
+
+/* ── Materiales / Categorías (fallback local) ────────────── */
+
+function loadMaterialsFromLocal() {
+  return _read("ms_materials");
+}
+function saveMaterialsToLocal(materials) {
+  _write("ms_materials", materials);
+}
+function loadCategoriesFromLocal() {
+  return _read("ms_categories");
+}
+function saveCategoriesToLocal(categories) {
+  _write("ms_categories", categories);
+}
+
+/* ── Alias para fallback desde app.js / data.js ─────────── */
+window._lsLoadPrices       = loadPrices;
+window._lsLoadInventory    = loadInventory;
+window._lsLoadMovements    = loadMovements;
+window._lsLoadPrevPrices   = loadPrevPrices;
+window._lsLoadMaterials    = loadMaterialsFromLocal;
+window._lsSaveMaterials    = saveMaterialsToLocal;
+window._lsLoadCategories   = loadCategoriesFromLocal;
+window._lsSaveCategories   = saveCategoriesToLocal;

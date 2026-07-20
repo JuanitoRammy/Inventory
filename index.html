@@ -24,6 +24,7 @@
         </div>
       </div>
       <div class="date-badge" id="dateBadge"></div>
+      <button class="btn btn-icon" id="btnAdmin" title="Administrar materiales" style="background:none;border:none;color:white;font-size:1.2rem;cursor:pointer;padding:4px 8px;">⚙️</button>
     </header>
 
 
@@ -187,12 +188,66 @@
           </div>
         </div>
       </section>
+
+      <!-- ADMIN -->
+      <section class="section" id="tab-admin">
+        <div class="card">
+          <div class="card-title">Administrar materiales</div>
+
+          <form id="adminMatForm" class="form-row" onsubmit="event.preventDefault();saveAdminMaterial();">
+            <input type="hidden" id="adminMatEditId" />
+            <div class="form-group">
+              <label>Nombre</label>
+              <input type="text" id="adminMatName" placeholder="Ej: Cobre recocido" required />
+            </div>
+            <div class="form-group">
+              <label>Categoría</label>
+              <select id="adminMatCat" required></select>
+            </div>
+            <div class="form-group" style="flex:0.6;">
+              <label>Color</label>
+              <input type="color" id="adminMatColor" value="#6B7280" style="height:38px;padding:2px;" />
+            </div>
+            <div class="form-group" style="flex:0.5;">
+              <label>Unidad</label>
+              <select id="adminMatUnit">
+                <option value="kg">kg</option>
+                <option value="und">und</option>
+              </select>
+            </div>
+            <div class="form-group" style="flex:0;align-self:flex-end;">
+              <button type="submit" class="btn btn-primary" id="adminMatSubmit">Agregar</button>
+            </div>
+          </form>
+
+          <div id="adminMatList"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Administrar categorías</div>
+
+          <form id="adminCatForm" class="form-row" onsubmit="event.preventDefault();saveAdminCategory();">
+            <input type="hidden" id="adminCatEditId" />
+            <div class="form-group">
+              <label>Nombre</label>
+              <input type="text" id="adminCatName" placeholder="Ej: Plásticos" required />
+            </div>
+            <div class="form-group" style="flex:0;align-self:flex-end;">
+              <button type="submit" class="btn btn-primary" id="adminCatSubmit">Agregar</button>
+            </div>
+          </form>
+
+          <div id="adminCatList"></div>
+        </div>
+      </section>
   <!-- /.app -->
 
   <script src="js/data.js"></script>
   <script src="js/storage.js"></script>
+  <script src="js/apiStorage.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/admin.js"></script>
 </body>
 
 </html>

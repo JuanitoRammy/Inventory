@@ -129,7 +129,7 @@ function renderInventoryTable(inventory, prices, query = "") {
 function populateSelect(selectId) {
   const el = document.getElementById(selectId);
   if (!el) return;
-  el.innerHTML = MATERIALS.map(
+  el.innerHTML = getActiveMaterials().map(
     (m) => `<option value="${m.id}">${m.name} (${m.unit || "kg"})</option>`,
   ).join("");
 }
@@ -142,7 +142,7 @@ function populateFilterSelect() {
   if (!el) return;
   el.innerHTML =
     '<option value="">Todos</option>' +
-    MATERIALS.map((m) => `<option value="${m.id}">${m.name}</option>`).join("");
+    getActiveMaterials().map((m) => `<option value="${m.id}">${m.name}</option>`).join("");
 }
 
 /* ── Movimientos ─────────────────────────────────────────── */
@@ -442,7 +442,7 @@ function setupInvoiceSearch(prices) {
       return;
     }
 
-    const matches = MATERIALS.filter(m => m.name.toLowerCase().includes(q));
+    const matches = getActiveMaterials().filter(m => m.name.toLowerCase().includes(q));
 
     if (!matches.length) {
       results.innerHTML = `<div style="padding:8px; font-size:12px; color:#999;">No se encontraron materiales</div>`;

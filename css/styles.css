@@ -476,3 +476,54 @@ tbody tr:hover td { background: var(--bg-secondary); }
   .form-row   { grid-template-columns: 1fr; }
   .section    { padding: 1rem .85rem 0; }
 }
+
+/* ============================================================
+   ADMIN
+   ============================================================ */
+.admin-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .6rem .75rem;
+  border-bottom: 0.5px solid var(--border);
+  font-size: 13px;
+  gap: .5rem;
+}
+.admin-item:last-child { border-bottom: none; }
+.admin-item-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+.admin-item-info small {
+  display: block;
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.admin-item-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+#adminMatForm .form-row,
+#adminCatForm .form-row {
+  margin-bottom: 1rem;
+}
+
+.admin-inactive {
+  opacity: 0.5;
+  background: var(--bg-secondary);
+}
+
+#adminMatList,
+#adminCatList {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-md);
+}
